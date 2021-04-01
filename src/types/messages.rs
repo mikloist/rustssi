@@ -96,6 +96,6 @@ mod tests {
         assert_eq!(Some(test_object()),  from_bytes(b":a PASS\n"));
         assert_eq!(Some(test_object()),  from_bytes(b":a PASS\r\n"));
         assert_eq!(Some(test_object()),  from_bytes(b":a PASS"));
-        assert_eq!(Some(test_object()),  from_bytes(b":a PASS    "));
+        assert_eq!(Some(test_object()),  from_bytes(b":a PASS    ")); 
     }
 }
