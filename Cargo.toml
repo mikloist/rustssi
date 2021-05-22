@@ -1,5 +1,5 @@
 [package]
-name = "hexchange"
+name = "rustssi"
 version = "0.1.0"
 authors = ["hectolight <hectolight@gmail.com>"]
 edition = "2018"
