@@ -6,21 +6,21 @@ use strum_macros::EnumString;
 use strum_macros::ToString;
 
 #[derive(Debug, PartialEq)]
-enum ErrorType {
+pub enum ErrorType {
     EmptyString,
     InvalidString,
     ComandNotFound,
 }
 
 #[derive(EnumString, ToString, Debug, PartialEq)]
-enum Command {
+pub enum Command {
     PASS,
     NICK,
     TOPIC,
 }
 
 #[derive(Debug, PartialEq)]
-struct GenericMessage<'a> {
+pub struct GenericMessage<'a> {
     prefix: Option<&'a str>,
     msg_type: Command,
     args: Vec<&'a str>,
@@ -32,7 +32,7 @@ const ENDLN: char = '\n';
 const CARRLN: char = '\r';
 
 impl<'a> GenericMessage<'a> {
-    fn to_message(&self) -> String {
+    pub fn to_message(&self) -> String {
         let mut msg = String::from("");
         if let Some(prefix) = &self.prefix {
             msg.push(COLON);
@@ -54,6 +54,27 @@ impl<'a> GenericMessage<'a> {
         }
 
         return msg;
+    }
+
+    pub fn from_bytes(input: &'a [u8]) -> Result<Self, ErrorType> {
+        let mut utf8_str = str::from_utf8(input).map_err(|_| ErrorType::InvalidString)?;
+
+        utf8_str = utf8_str.trim_end_matches(|x| x == ENDLN || x == CARRLN);
+        utf8_str = utf8_str.trim_start();
+
+        if utf8_str.len() == 0 {
+            return Err(ErrorType::EmptyString);
+        }
+
+        let prefix = parse_prefix(&mut utf8_str);
+        let msg_type = parse_command(&mut utf8_str)?;
+        let args = parse_args(&mut utf8_str);
+
+        Ok(GenericMessage {
+            prefix,
+            msg_type,
+            args,
+        })
     }
 }
 
@@ -95,27 +116,6 @@ fn parse_args<'a>(input: &mut &'a str) -> Vec<&'a str> {
 
     *input = &input[0..0];
     return v;
-}
-
-fn from_bytes<'a>(input: &'a [u8]) -> Result<GenericMessage<'a>, ErrorType> {
-    let mut utf8_str = str::from_utf8(input).map_err(|_| ErrorType::InvalidString)?;
-
-    utf8_str = utf8_str.trim_end_matches(|x| x == ENDLN || x == CARRLN);
-    utf8_str = utf8_str.trim_start();
-
-    if utf8_str.len() == 0 {
-        return Err(ErrorType::EmptyString);
-    }
-
-    let prefix = parse_prefix(&mut utf8_str);
-    let msg_type = parse_command(&mut utf8_str)?;
-    let args = parse_args(&mut utf8_str);
-
-    Ok(GenericMessage {
-        prefix,
-        msg_type,
-        args,
-    })
 }
 
 #[cfg(test)]
@@ -250,8 +250,8 @@ mod tests {
             args: vec!["#test", "New topic "],
         };
 
+        assert_eq!(GenericMessage::from_bytes(v).unwrap(), var);
         assert_eq!(var.to_message().as_bytes(), v);
-        assert_eq!(from_bytes(v), Ok(var));
     }
 
     #[test]
@@ -263,8 +263,8 @@ mod tests {
             args: vec!["#test", "New topic "],
         };
 
+        assert_eq!(GenericMessage::from_bytes(v).unwrap(), var);
         assert_eq!(var.to_message().as_bytes(), v);
-        assert_eq!(from_bytes(v), Ok(var));
     }
     #[test]
     fn test_msg_3() {
@@ -275,7 +275,7 @@ mod tests {
             args: vec![],
         };
 
+        assert_eq!(GenericMessage::from_bytes(v).unwrap(), var);
         assert_eq!(var.to_message().as_bytes(), v);
-        assert_eq!(from_bytes(v), Ok(var));
     }
 }
