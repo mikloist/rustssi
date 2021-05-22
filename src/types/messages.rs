@@ -20,10 +20,10 @@ enum Command {
 }
 
 #[derive(Debug, PartialEq)]
-struct GenericMessage {
-    prefix: Option<String>,
+struct GenericMessage<'a> {
+    prefix: Option<&'a str>,
     msg_type: Command,
-    args: Vec<String>,
+    args: Vec<&'a str>,
 }
 
 const SPACE: char = ' ';
@@ -31,7 +31,7 @@ const COLON: char = ':';
 const ENDLN: char = '\n';
 const CARRLN: char = '\r';
 
-impl GenericMessage {
+impl<'a> GenericMessage<'a> {
     fn to_message(&self) -> String {
         let mut msg = String::from("");
         if let Some(prefix) = &self.prefix {
@@ -57,10 +57,10 @@ impl GenericMessage {
     }
 }
 
-fn parse_prefix(input: &mut &str) -> Option<String> {
+fn parse_prefix<'a>(input: &mut &'a str) -> Option<&'a str> {
     if input.starts_with(COLON) {
         if let Some(sep) = input.find(|x| x == SPACE) {
-            let val = Some(String::from(&input[1..sep]));
+            let val = Some(&input[1..sep]);
             *input = &input[sep + SPACE.len_utf8()..];
             return val;
         }
@@ -78,19 +78,17 @@ fn parse_command(input: &mut &str) -> Result<Command, ErrorType> {
     *input = &input[end..];
     return Ok(command);
 }
-fn parse_args(input: &mut &str) -> Vec<String> {
-    let mut v = Vec::<String>::new();
+fn parse_args<'a>(input: &mut &'a str) -> Vec<&'a str> {
+    let mut v = Vec::<&str>::new();
     match input.find(|x| x == COLON) {
         Some(sep) => {
-            let itr = input[0..sep]
-                .split_ascii_whitespace()
-                .map(|x| String::from(x));
+            let itr = input[0..sep].split_ascii_whitespace();
 
             v.extend(itr);
-            v.push(String::from(&input[sep + COLON.len_utf8()..]));
+            v.push(&input[sep + COLON.len_utf8()..]);
         }
         None => {
-            let itr = input.split_ascii_whitespace().map(|x| String::from(x));
+            let itr = input.split_ascii_whitespace();
             v.extend(itr);
         }
     }
@@ -99,7 +97,7 @@ fn parse_args(input: &mut &str) -> Vec<String> {
     return v;
 }
 
-fn from_bytes(input: &[u8]) -> Result<GenericMessage, ErrorType> {
+fn from_bytes<'a>(input: &'a [u8]) -> Result<GenericMessage<'a>, ErrorType> {
     let mut utf8_str = str::from_utf8(input).map_err(|_| ErrorType::InvalidString)?;
 
     utf8_str = utf8_str.trim_end_matches(|x| x == ENDLN || x == CARRLN);
@@ -156,7 +154,7 @@ mod tests {
     #[test]
     fn prefix_tests_all_good() {
         let mut v = ":hello ";
-        assert_eq!(parse_prefix(&mut v), Some(String::from("hello")));
+        assert_eq!(parse_prefix(&mut v), Some("hello"));
         assert_eq!(v, "");
     }
 
@@ -177,7 +175,7 @@ mod tests {
     #[test]
     fn prefix_tests_long_string() {
         let mut v = ":very long stuff but should be parsed ";
-        assert_eq!(parse_prefix(&mut v), Some(String::from("very")));
+        assert_eq!(parse_prefix(&mut v), Some("very"));
         assert_eq!(v, "long stuff but should be parsed ");
     }
 
@@ -188,10 +186,10 @@ mod tests {
 
         assert_eq!(
             parse_prefix(&mut v),
-            Some(String::from(
+            Some(
                 "very_long@stuff\"but...should
 "
-            ))
+            )
         );
         assert_eq!(v, "       be parsed ");
     }
@@ -247,12 +245,9 @@ mod tests {
     fn test_msgs() {
         let v = ":WiZ!jto@tolsun.oulu.fi TOPIC #test :New topic ".as_bytes();
         let var = GenericMessage {
-            prefix: Some(String::from("WiZ!jto@tolsun.oulu.fi")),
+            prefix: Some("WiZ!jto@tolsun.oulu.fi"),
             msg_type: Command::TOPIC,
-            args: vec!["#test", "New topic "]
-                .iter()
-                .map(|&x| String::from(x))
-                .collect(),
+            args: vec!["#test", "New topic "],
         };
 
         assert_eq!(var.to_message().as_bytes(), v);
@@ -265,10 +260,7 @@ mod tests {
         let var = GenericMessage {
             prefix: None,
             msg_type: Command::TOPIC,
-            args: vec!["#test", "New topic "]
-                .iter()
-                .map(|&x| String::from(x))
-                .collect(),
+            args: vec!["#test", "New topic "],
         };
 
         assert_eq!(var.to_message().as_bytes(), v);
