@@ -2,27 +2,14 @@ use std::{
     str::{self, FromStr},
     string::ToString,
 };
-use strum_macros::EnumString;
-use strum_macros::ToString;
 
-#[derive(Debug, PartialEq)]
-pub enum ErrorType {
-    EmptyString,
-    InvalidString,
-    ComandNotFound,
-}
-
-#[derive(EnumString, ToString, Debug, PartialEq)]
-pub enum Command {
-    PASS,
-    NICK,
-    TOPIC,
-}
+use super::enums::Command;
+use super::enums::ErrorType;
 
 #[derive(Debug, PartialEq)]
 pub struct GenericMessage<'a> {
     prefix: Option<&'a str>,
-    msg_type: Command,
+    msg_type: Command<'a>,
     args: Vec<&'a str>,
 }
 
@@ -89,16 +76,23 @@ fn parse_prefix<'a>(input: &mut &'a str) -> Option<&'a str> {
     None
 }
 
-fn parse_command(input: &mut &str) -> Result<Command, ErrorType> {
+fn parse_command<'a>(input: &mut &'a str) -> Result<Command<'a>, ErrorType> {
     let (cmd_end, end) = match input.find(|x| x == SPACE) {
         Some(sep) => (sep, sep + SPACE.len_utf8()),
         None => (input.len(), input.len()),
     };
 
+    if input[0..cmd_end].chars().all(|x| x >= '0' && x <= '9') {
+        let command = Ok(Command::INTERROR(&input[0..cmd_end]));
+        *input = &input[end..];
+        return command;
+    }
+
     let command = Command::from_str(&input[0..cmd_end]).map_err(|_| ErrorType::ComandNotFound)?;
     *input = &input[end..];
     return Ok(command);
 }
+
 fn parse_args<'a>(input: &mut &'a str) -> Vec<&'a str> {
     let mut v = Vec::<&str>::new();
     match input.find(|x| x == COLON) {
