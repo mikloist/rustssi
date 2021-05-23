@@ -27,7 +27,10 @@ impl<'a> GenericMessage<'a> {
             msg.push(SPACE);
         }
 
-        msg.push_str(self.msg_type.to_string().as_str());
+        match &self.msg_type {
+            Command::INTERROR(v) => msg.push_str(v),
+            msgtype => msg.push_str(msgtype.to_string().as_str()),
+        }
 
         let args_len = self.args.len();
 
@@ -82,13 +85,13 @@ fn parse_command<'a>(input: &mut &'a str) -> Result<Command<'a>, ErrorType> {
         None => (input.len(), input.len()),
     };
 
-    if input[0..cmd_end].chars().all(|x| x >= '0' && x <= '9') {
-        let command = Ok(Command::INTERROR(&input[0..cmd_end]));
+    let cmd = &input[0..cmd_end];
+    if cmd.chars().all(|x| x >= '0' && x <= '9') {
         *input = &input[end..];
-        return command;
+        return Ok(Command::INTERROR(cmd));
     }
 
-    let command = Command::from_str(&input[0..cmd_end]).map_err(|_| ErrorType::ComandNotFound)?;
+    let command = Command::from_str(cmd).map_err(|_| ErrorType::ComandNotFound)?;
     *input = &input[end..];
     return Ok(command);
 }
@@ -267,6 +270,19 @@ mod tests {
             prefix: None,
             msg_type: Command::NICK,
             args: vec![],
+        };
+
+        assert_eq!(GenericMessage::from_bytes(v).unwrap(), var);
+        assert_eq!(var.to_message().as_bytes(), v);
+    }
+
+    #[test]
+    fn test_msg_4() {
+        let v = "800 :oh snap".as_bytes();
+        let var = GenericMessage {
+            prefix: None,
+            msg_type: Command::INTERROR("800"),
+            args: vec!["oh snap"],
         };
 
         assert_eq!(GenericMessage::from_bytes(v).unwrap(), var);

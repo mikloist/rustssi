@@ -9,3 +9,10 @@ edition = "2018"
 [dependencies]
 strum = "0.20"
 strum_macros = "0.20"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "parse_bench"
+harness = false
