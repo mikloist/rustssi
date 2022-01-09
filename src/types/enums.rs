@@ -1,5 +1,5 @@
+use strum_macros::Display;
 use strum_macros::EnumString;
-use strum_macros::ToString;
 
 #[derive(Debug, PartialEq)]
 pub enum ErrorType {
@@ -8,7 +8,7 @@ pub enum ErrorType {
     ComandNotFound,
 }
 
-#[derive(EnumString, ToString, Debug, PartialEq)]
+#[derive(EnumString, Display, Debug, PartialEq)]
 pub enum Command<'a> {
     PASS,
     USER,

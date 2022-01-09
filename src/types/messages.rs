@@ -97,17 +97,23 @@ fn parse_command<'a>(input: &mut &'a str) -> Result<Command<'a>, ErrorType> {
 }
 
 fn parse_args<'a>(input: &mut &'a str) -> Vec<&'a str> {
-    let mut v = Vec::<&str>::new();
+    let count = input
+        .chars()
+        .fold(1, |x, y| if y == SPACE { x + 1 } else { x });
+    let mut v = Vec::<&str>::with_capacity(count);
     match input.find(|x| x == COLON) {
         Some(sep) => {
             let itr = input[0..sep].split_ascii_whitespace();
-
-            v.extend(itr);
+            for val in itr {
+                v.push(val);
+            }
             v.push(&input[sep + COLON.len_utf8()..]);
         }
         None => {
             let itr = input.split_ascii_whitespace();
-            v.extend(itr);
+            for val in itr {
+                v.push(val);
+            }
         }
     }
 
